@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: greeting-rust
+spec:
+    selector:
+        matchLabels:
+            app: greeting-rust
+    template:
+        metadata:
+            labels:
+                app: greeting-rust
+        spec:
+            containers:
+                -   name: greeting-rust
+                    image: arnecdn/greeting-rust:0.23
+                    imagePullPolicy: IfNotPresent
+
+                    ports:
+                        -   containerPort: 8080
+                    env:
+                        -   name: APP__DATABASE__DATABASE
+                            valueFrom:
+                                configMapKeyRef:
+                                    key: POSTGRES_DB
+                                    name: postgres-greeting-config
+                        -   name: APP__DATABASE__USER
+                            valueFrom:
+                                configMapKeyRef:
+                                    key: POSTGRES_USER
+                                    name: postgres-greeting-config
+                        -   name: APP__DATABASE__PASSWORD
+                            valueFrom:
+                                secretKeyRef:
+                                    key: POSTGRES_PASSWORD
+                                    name: postgres-greeting-secret
+                        - name: APP__DATABASE__URL
+                          value: "postgres://$(APP__DATABASE__USER):$(APP__DATABASE__PASSWORD)@postgres-greeting:5432/$(APP__DATABASE__DATABASE)"
+                        - name: APP__KAFKA__BROKER
+                          value: "kafka-service:9093"
+                        - name: APP__KAFKA__TOPIC
+                          value: "greetings"
+                        - name: APP__KAFKA__CONSUMER_GROUP
+                          value: "greeting_consumers"
+                        - name: APP__KAFKA__MESSAGE_TIMEOUT_MS
+                          value: "5000"
+                        - name: APP__KAFKA__ENABLE_IDEMPOTENCE
+                          value: "true"
+                        - name: APP__KAFKA__PROCESSING_GUARANTEE
+                          value: "exactly_once"
+                        - name: APP__KAFKA__NUMBER_OF_CONSUMERS
+                          value: "1"
+                    command:
+                              - "/usr/bin/server"
+
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+    name: greeting-rust
+spec:
+    ports:
+        - port: 8080
+    selector:
+        app: greeting-rust

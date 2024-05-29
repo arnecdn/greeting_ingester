@@ -1,41 +1,25 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: greeting-rust
+    name: greeting-processor-rust
 spec:
     selector:
         matchLabels:
-            app: greeting-rust
+            app: greeting-processor-rust
     template:
         metadata:
             labels:
-                app: greeting-rust
+                app: greeting-processor-rust
         spec:
             containers:
-                -   name: greeting-rust
-                    image: arnecdn/greeting-rust:0.23
+                -   name: greeting-processor-rust
+                    image: arnecdn/greeting-processor-rust:0.9
                     imagePullPolicy: IfNotPresent
 
                     ports:
-                        -   containerPort: 8080
+                        -   containerPort: 8090
                     env:
-                        -   name: APP__DATABASE__DATABASE
-                            valueFrom:
-                                configMapKeyRef:
-                                    key: POSTGRES_DB
-                                    name: postgres-greeting-config
-                        -   name: APP__DATABASE__USER
-                            valueFrom:
-                                configMapKeyRef:
-                                    key: POSTGRES_USER
-                                    name: postgres-greeting-config
-                        -   name: APP__DATABASE__PASSWORD
-                            valueFrom:
-                                secretKeyRef:
-                                    key: POSTGRES_PASSWORD
-                                    name: postgres-greeting-secret
-                        - name: APP__DATABASE__URL
-                          value: "postgres://$(APP__DATABASE__USER):$(APP__DATABASE__PASSWORD)@postgres-greeting:5432/$(APP__DATABASE__DATABASE)"
+
                         - name: APP__KAFKA__BROKER
                           value: "kafka-service:9093"
                         - name: APP__KAFKA__TOPIC
@@ -48,19 +32,43 @@ spec:
                           value: "true"
                         - name: APP__KAFKA__PROCESSING_GUARANTEE
                           value: "exactly_once"
-                        - name: APP__KAFKA__NUMBER_OF_CONSUMERS
-                          value: "1"
                     command:
                               - "/usr/bin/server"
+#                    command:
+#                        - "tail -f /dev/null"
+
 
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-    name: greeting-rust
+    name: greeting-processor-rust
 spec:
     ports:
-        - port: 8080
+        - port: 8090
     selector:
-        app: greeting-rust
+        app: greeting-processor-rust
+
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+    name: kafka-scaledobject
+    namespace: default
+    labels:
+        deploymentName: greeting-processor-rust
+spec:
+    scaleTargetRef:
+        name: greeting-processor-rust
+    pollingInterval: 5
+    minReplicaCount: 1
+    maxReplicaCount: 1  # Max can go upto num of partitions you have in the topic
+    triggers:
+        - type: kafka
+          metadata:
+              consumerGroup: "greeting_consumers"
+              bootstrapServers: kafka-service:9093
+              topic: greetings
+              lagThreshold: "10"
+              offsetRestPolicy: latest

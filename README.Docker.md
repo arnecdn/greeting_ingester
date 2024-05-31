@@ -23,7 +23,7 @@ docs for more detail on building and pushing.
 
 
 ```
-TAG="0.2" 
+TAG="0.9" 
 docker build -q -t "arnecdn/greeting-processor-rust:${TAG}" . &&
 mkdir -p .docker && docker image save -o .docker/greeting-processor-rust.tar "arnecdn/greeting-processor-rust:${TAG}" &&
 minikube image load .docker/greeting-processor-rust.tar

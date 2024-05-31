@@ -3,6 +3,7 @@ kind: Deployment
 metadata:
     name: greeting-processor-rust
 spec:
+    replicas: 0
     selector:
         matchLabels:
             app: greeting-processor-rust
@@ -27,7 +28,7 @@ spec:
                         - name: APP__KAFKA__CONSUMER_GROUP
                           value: "greeting_consumers"
                         - name: APP__KAFKA__MESSAGE_TIMEOUT_MS
-                          value: "5000"
+                          value: "3000"
                         - name: APP__KAFKA__ENABLE_IDEMPOTENCE
                           value: "true"
                         - name: APP__KAFKA__PROCESSING_GUARANTEE
@@ -54,7 +55,7 @@ spec:
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:
-    name: kafka-scaledobject
+    name: greeting-processor-rust-scaledobject
     namespace: default
     labels:
         deploymentName: greeting-processor-rust
@@ -62,13 +63,13 @@ spec:
     scaleTargetRef:
         name: greeting-processor-rust
     pollingInterval: 5
-    minReplicaCount: 1
-    maxReplicaCount: 1  # Max can go upto num of partitions you have in the topic
+    minReplicaCount: 0
+    maxReplicaCount: 3  # Max can go upto num of partitions you have in the topic
     triggers:
         - type: kafka
           metadata:
               consumerGroup: "greeting_consumers"
-              bootstrapServers: kafka-service:9093
+              bootstrapServers: kafka-service.default.svc.cluster.local:9093
               topic: greetings
               lagThreshold: "10"
               offsetRestPolicy: latest

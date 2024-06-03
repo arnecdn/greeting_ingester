@@ -1,66 +1,45 @@
-use std::time::Duration;
-
-use chrono::NaiveDateTime;
+use chrono::{Local, NaiveDateTime};
 use config::Config;
 use dotenv::dotenv;
+use futures_util::StreamExt;
 use rdkafka::{ClientConfig, Message};
-use rdkafka::consumer::{BaseConsumer, Consumer};
-use rdkafka::error::KafkaResult;
+use rdkafka::consumer::{CommitMode, Consumer, StreamConsumer};
 use serde::{Deserialize, Serialize};
 
-fn main() {
+#[tokio::main]
+async fn main() -> std::io::Result<()> {
     let app_config = Settings::new();
 
-    // let mut consumer = MyConsumer::new( vec![  app_config.kafka.broker ], app_config.kafka.topic , app_config.kafka.consumer_group);
     let mut kafka_config: ClientConfig = ClientConfig::new();
     kafka_config.set("bootstrap.servers", app_config.kafka.broker);
     kafka_config.set("group.id", app_config.kafka.consumer_group);
-    // kafka_config.set("max.poll.records", "1");
     ;
     // put here to show that the microservice has started
-    println!("Started...");
+    // println!("Datetime:{},Started...", Local::now());
 
-    let consumer: BaseConsumer = kafka_config.create().unwrap();
+    let consumer: StreamConsumer = kafka_config.create().unwrap();
 
     consumer.subscribe(&[&*app_config.kafka.topic]).unwrap();
-    for msg in consumer.iter() {
-        match msg {
-            Err(e) => println!("error retrieving msg: {}", e),
-            Ok(m) => {
-                let payload = match m.payload_view::<str>() {
-                    None => "",
-                    Some(Ok(s)) => s,
-                    Some(Err(e)) => {
-                        println!("Error while deserializing message payload: {:?}", e);
-                        ""
-                    }
-                };
-                println!("key: '{:?}', payload: '{}', topic: {}, partition: {}, offset: {}, timestamp: {:?}",
-                         m.key().unwrap(), payload, m.topic(), m.partition(), m.offset(), m.timestamp());
-            }
+
+    let borrowed_msg = consumer.stream().next().await.unwrap().expect("MessageStream never returns None");
+
+    let payload = match borrowed_msg.payload_view::<str>() {
+        None => "",
+        Some(Ok(s)) => s,
+        Some(Err(e)) => {
+            println!("Error while deserializing message payload: {:?}", e);
+            ""
         }
+    };
 
+    println!("Datetime:{}, partition: {}, offset: {}, payload: '{}'",
+             Local::now(), borrowed_msg.partition(), borrowed_msg.offset(), payload);
 
-    }
-    // match consumer.poll(Duration::from_secs(10)) {
-    //     Some(Ok(v)) =>{
-    //                     let m = match v.payload_view::<str>() {
-    //                         None => "",
-    //                         Some(Ok(s)) => s,
-    //                         Some(Err(e)) => {
-    //                             println!("Error while deserializing message payload: {:?}", e);
-    //                             ""
-    //                         }
-    //                     };
-    //         println!("message {:?}", m);
-    //     },
-    //     Some(Err(e)) => println!("error retrieving msg: {}", e),
-    //     _=> (),
-    // }
+    consumer.commit_message(&borrowed_msg, CommitMode::Sync).expect(&format!("Panic: not able to commit offset:{}", borrowed_msg.offset()));
 
+    // println!("Datetime:{}, Finnished!", Local::now(),);
+    Ok(())
 
-    // Ok(())
-    println!("Finnished!");
     // }
 }
 

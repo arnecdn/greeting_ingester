@@ -14,7 +14,7 @@ spec:
         spec:
             containers:
                 -   name: greeting-processor-rust
-                    image: arnecdn/greeting-processor-rust:0.10
+                    image: arnecdn/greeting-processor-rust:0.13
                     imagePullPolicy: IfNotPresent
 
                     ports:
@@ -52,6 +52,27 @@ spec:
         app: greeting-processor-rust
 
 ---
+#apiVersion: keda.sh/v1alpha1
+#kind: ScaledObject
+#metadata:
+#    name: greeting-processor-rust-scaledobject
+#    namespace: default
+#    labels:
+#        deploymentName: greeting-processor-rust
+#spec:
+#    scaleTargetRef:
+#        name: greeting-processor-rust
+#    pollingInterval: 5
+#    minReplicaCount: 0
+#    maxReplicaCount: 10  # Max can go upto num of partitions you have in the topic
+#    triggers:
+#        - type: kafka
+#          metadata:
+#              consumerGroup: "greeting_consumers"
+#              bootstrapServers: kafka-service.default.svc.cluster.local:9093
+#              topic: greetings
+#              lagThreshold: "10"
+#              offsetRestPolicy: latest
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:
@@ -64,7 +85,7 @@ spec:
         name: greeting-processor-rust
     pollingInterval: 5
     minReplicaCount: 0
-    maxReplicaCount: 3  # Max can go upto num of partitions you have in the topic
+    maxReplicaCount: 10  # Max can go upto num of partitions you have in the topic
     triggers:
         - type: kafka
           metadata:

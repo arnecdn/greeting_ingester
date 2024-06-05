@@ -60,8 +60,8 @@ pub async fn consume_and_print() {
                         ""
                     }
                 };
-                info!("key: '{:?}', payload: '{}', topic: {}, partition: {}, offset: {}, timestamp: {:?}",
-                      m.key(), payload, m.topic(), m.partition(), m.offset(), m.timestamp());
+                info!("topic: {}, partition: {}, offset: {}, timestamp: {:?}, payload: '{}'",
+                    m.topic(), m.partition(), m.offset(), m.timestamp(), payload,);
                 if let Some(headers) = m.headers() {
                     for header in headers.iter() {
                         info!("  Header {:#?}: {:?}", header.key, header.value);

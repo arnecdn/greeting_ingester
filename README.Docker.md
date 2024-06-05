@@ -28,3 +28,11 @@ docker build -q -t "arnecdn/greeting-processor-rust:${TAG}" . &&
 mkdir -p .docker && docker image save -o .docker/greeting-processor-rust.tar "arnecdn/greeting-processor-rust:${TAG}" &&
 minikube image load .docker/greeting-processor-rust.tar
 ```
+
+
+For installation of Keda, use Helm with the following commandline parameters. 
+Setting namespace=default because of some unsolved problem with accessing Kafka in different namespace
+
+```
+helm install keda kedacore/keda --namespace default
+```

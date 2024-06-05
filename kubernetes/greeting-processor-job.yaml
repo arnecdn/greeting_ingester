@@ -9,7 +9,7 @@ spec:
             spec:
                 containers:
                     -   name: greeting-processor-rust
-                        image: arnecdn/greeting-processor-rust:0.13
+                        image: arnecdn/greeting-processor-rust:0.14
                         imagePullPolicy: IfNotPresent
 
                         ports:
@@ -30,7 +30,7 @@ spec:
                                 value: "exactly_once"
                         command:
                             - "/usr/bin/server"
-    pollingInterval: 5
+    pollingInterval: 1
     successfulJobsHistoryLimit: 10 # Number of successful jobs to keep
     failedJobsHistoryLimit: 10 # Number of failed jobs to keep
     maxReplicaCount: 100 # Maximum number of jobs that KEDA can create

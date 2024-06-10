@@ -16,7 +16,12 @@ spec:
                 -   name: greeting-processor-rust
                     image: arnecdn/greeting-processor-rust:0.15
                     imagePullPolicy: IfNotPresent
-
+                    resources:
+                        requests:
+                            memory: "8Mi"
+                            cpu: "1m"
+                        limits:
+                            memory: "16Mi"
                     ports:
                         -   containerPort: 8090
                     env:

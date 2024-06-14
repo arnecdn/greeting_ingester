@@ -14,7 +14,7 @@ spec:
         spec:
             containers:
                 -   name: greeting-processor-rust
-                    image: arnecdn/greeting-processor-rust:0.15
+                    image: arnecdn/greeting-processor-rust:0.16
                     imagePullPolicy: IfNotPresent
                     resources:
                         requests:
@@ -38,6 +38,8 @@ spec:
                           value: "true"
                         - name: APP__KAFKA__PROCESSING_GUARANTEE
                           value: "exactly_once"
+                        - name: APP__DB__DATABASE_URL
+                          value: "postgres://greeting_rust:greeting_rust@localhost:5432/greeting_rust"
                     command:
                               - "/usr/bin/server"
 #                    command:

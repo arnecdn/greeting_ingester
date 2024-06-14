@@ -1,5 +1,6 @@
 mod kafka_consumer;
 mod kafka_single_msg_consumer;
+mod greetings;
 
 use std::io::Error;
 use std::os::fd::AsRawFd;
@@ -17,13 +18,14 @@ use rdkafka::consumer::{CommitMode, Consumer, StreamConsumer};
 use serde::{Deserialize, Serialize};
 use rand::{random, Rng};
 use rdkafka::error::KafkaError;
+use crate::greetings::GreetingRepositoryImpl;
 
 #[tokio::main]
 async fn main() {
     log::set_logger(&CONSOLE_LOGGER).expect("Not able to config logger");
     log::set_max_level(LevelFilter::Info);
 
-    kafka_consumer::consume_and_print().await
+    kafka_consumer::consume_and_print().await.expect("Something bad happened...");
 }
 
 static CONSOLE_LOGGER: ConsoleLogger = ConsoleLogger;
@@ -43,19 +45,11 @@ impl log::Log for ConsoleLogger {
 
     fn flush(&self) {}
 }
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct GreetingMessage {
-    id: String,
-    to: String,
-    from: String,
-    heading: String,
-    message: String,
-    created: NaiveDateTime,
-}
 
 #[derive(Deserialize)]
 pub(crate) struct Settings {
     pub(crate) kafka: Kafka,
+    pub db: Db
 }
 
 impl Settings {
@@ -81,4 +75,8 @@ pub(crate) struct Kafka {
     // pub (crate) enable_idempotence: bool,
     // pub (crate) processing_guarantee: String,
     // pub (crate) number_of_consumers:i32
+}
+#[derive(Deserialize)]
+pub struct Db{
+    pub database_url: String
 }

@@ -4,7 +4,8 @@ use rdkafka::consumer::{BaseConsumer, CommitMode, Consumer, ConsumerContext, Reb
 use rdkafka::error::KafkaResult;
 use log::{info, warn};
 use rdkafka::message::Headers;
-use crate::Settings;
+use crate::greetings::{Greeting, GreetingRepository, GreetingRepositoryImpl, RepoError};
+use crate::{greetings, Settings};
 
 struct CustomContext;
 
@@ -26,8 +27,15 @@ impl ConsumerContext for CustomContext {
 
 // A type alias with your custom consumer can be created for convenience.
 type LoggingConsumer = StreamConsumer<CustomContext>;
+#[derive(Debug)]
+pub struct ConsumerError;
 
-pub async fn consume_and_print() {
+impl From<greetings::RepoError> for ConsumerError{
+    fn from(value: RepoError) -> Self {
+        ConsumerError{}
+    }
+}
+pub async fn consume_and_print() -> Result<(),ConsumerError>{
 
     let context = CustomContext;
     let app_config = Settings::new();
@@ -46,6 +54,8 @@ pub async fn consume_and_print() {
     consumer
         .subscribe(&[&app_config.kafka.topic])
         .expect("Can't subscribe to specified topics");
+
+    let mut repo = GreetingRepositoryImpl::new(app_config.db.database_url).await?;
     info!("Starting to subscriobe on topic: {}", &app_config.kafka.topic);
 
     loop {
@@ -62,6 +72,8 @@ pub async fn consume_and_print() {
                 };
                 info!("topic: {}, partition: {}, offset: {}, timestamp: {:?}, payload: '{}'",
                     m.topic(), m.partition(), m.offset(), m.timestamp(), payload,);
+                let msg = serde_json::from_str(&payload).unwrap();
+                repo.store(msg).await?;
                 if let Some(headers) = m.headers() {
                     for header in headers.iter() {
                         info!("  Header {:#?}: {:?}", header.key, header.value);
@@ -71,4 +83,5 @@ pub async fn consume_and_print() {
             }
         };
     }
+    Ok(())
 }

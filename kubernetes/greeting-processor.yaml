@@ -39,7 +39,7 @@ spec:
                         - name: APP__KAFKA__PROCESSING_GUARANTEE
                           value: "exactly_once"
                         - name: APP__DB__DATABASE_URL
-                          value: "postgres://greeting_rust:greeting_rust@localhost:5432/greeting_rust"
+                          value: "postgres://greeting_rust:greeting_rust@postgres-greeting:5432/greeting_rust"
                     command:
                               - "/bin/server"
 #                    command:

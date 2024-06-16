@@ -22,6 +22,18 @@ docs for more detail on building and pushing.
 * [Docker's Rust guide](https://docs.docker.com/language/rust/)
 
 
+## Building app with SQLX
+In order to build application with sqlx, the macros used in code need to validate SQL
+Tryding to use the updated query-cache from development
+Set
+```
+ENV SQLX_OFFLINE true
+```
+Mount generated sqlx cache to build
+```
+--mount=type=bind,source=.sqlx,target=.sqlx \
+```
+gs
 ```
 TAG="0.20" 
 docker build -q -t "arnecdn/greeting-processor-rust:${TAG}" . &&

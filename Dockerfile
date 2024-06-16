@@ -19,6 +19,9 @@ WORKDIR /app
 # Install host build dependencies.
 RUN apt-get update && apt-get install -y cmake
 
+ENV SQLX_OFFLINE true
+ENV DATABASE_URL=""
+
 # Build the application.
 # Leverage a cache mount to /usr/local/cargo/registry/
 # for downloaded dependencies, a cache mount to /usr/local/cargo/git/db
@@ -28,13 +31,17 @@ RUN apt-get update && apt-get install -y cmake
 # source code into the container. Once built, copy the executable to an
 # output directory before the cache mounted /app/target is unmounted.
 RUN --mount=type=bind,source=src,target=src \
+    --mount=type=bind,source=migrations,target=migrations \
+    --mount=type=bind,source=.sqlx,target=.sqlx \
     --mount=type=bind,source=Cargo.toml,target=Cargo.toml \
     --mount=type=bind,source=Cargo.lock,target=Cargo.lock \
     --mount=type=cache,target=/app/target/ \
     --mount=type=cache,target=/usr/local/cargo/git/db \
     --mount=type=cache,target=/usr/local/cargo/registry/ \
-cargo build --locked --release && \
-cp ./target/release/$APP_NAME /bin/server
+    cargo build --locked --release && \
+    cp ./target/release/$APP_NAME /bin/server && \
+    mkdir -p /bin/migrations && \
+    cp migrations/* /bin/migrations
 
 ################################################################################
 # Create a new stage for running the application that contains the minimal
@@ -49,6 +56,7 @@ cp ./target/release/$APP_NAME /bin/server
 FROM rust:${RUST_VERSION} AS final
 
 #RUN apk update && apk add gcompat strace
+RUN mkdir -p /bin/migrations
 
 # Create a non-privileged user that the app will run under.
 # See https://docs.docker.com/go/dockerfile-user-best-practices/
@@ -64,7 +72,8 @@ RUN adduser \
 USER appuser
 
 # Copy the executable from the "build" stage.
-COPY --chown=appuser:appuser --from=build /bin/server /usr/bin/
+COPY --chown=appuser:appuser --from=build /bin/server /bin/
+COPY --chown=appuser:appuser --from=build /bin/migrations /bin/migrations
 
 # Expose the port that the application listens on.
 EXPOSE 8090

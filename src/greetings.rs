@@ -1,12 +1,11 @@
-use std::error::Error;
 use std::str::FromStr;
 use async_trait::async_trait;
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
-use sqlx::{Connection, migrate, PgConnection, PgPool, Pool};
+use sqlx::{migrate,  Pool};
 use sqlx::migrate::MigrateError;
 use sqlx::postgres::PgPoolOptions;
-use sqlx::types::Uuid;
+use uuid::Uuid;
 
 
 pub struct GreetingRepositoryImpl{
@@ -14,7 +13,7 @@ pub struct GreetingRepositoryImpl{
 }
 
 pub struct RepoError{
-    error_message: String,
+    pub error_message: String,
 }
 
 impl From<sqlx::Error> for RepoError{
@@ -27,6 +26,8 @@ impl From<MigrateError> for RepoError{
         RepoError{ error_message: value.to_string()}
     }
 }
+
+
 #[async_trait]
 pub trait GreetingRepository{
     async fn store(&mut self, greeting: Greeting) -> Result<(), RepoError>;

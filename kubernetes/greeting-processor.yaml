@@ -14,7 +14,7 @@ spec:
         spec:
             containers:
                 -   name: greeting-processor-rust
-                    image: arnecdn/greeting-processor-rust:0.16
+                    image: arnecdn/greeting-processor-rust:0.20
                     imagePullPolicy: IfNotPresent
                     resources:
                         requests:
@@ -41,7 +41,7 @@ spec:
                         - name: APP__DB__DATABASE_URL
                           value: "postgres://greeting_rust:greeting_rust@localhost:5432/greeting_rust"
                     command:
-                              - "/usr/bin/server"
+                              - "/bin/server"
 #                    command:
 #                        - "tail -f /dev/null"
 

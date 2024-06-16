@@ -2,23 +2,12 @@ mod kafka_consumer;
 mod kafka_single_msg_consumer;
 mod greetings;
 
-use std::io::Error;
-use std::os::fd::AsRawFd;
-use std::thread;
-use std::time::Duration;
-use chrono::{Local, NaiveDateTime};
+use chrono::{Local};
 use config::Config;
-use derive_more::{Display, Error};
 use dotenv::dotenv;
-use env_logger::{Builder, Target};
-use futures_util::StreamExt;
 use log::{Level, LevelFilter, Metadata, Record};
-use rdkafka::{ClientConfig, Message};
-use rdkafka::consumer::{CommitMode, Consumer, StreamConsumer};
-use serde::{Deserialize, Serialize};
-use rand::{random, Rng};
-use rdkafka::error::KafkaError;
-use crate::greetings::GreetingRepositoryImpl;
+use serde::Deserialize;
+
 
 #[tokio::main]
 async fn main() {
@@ -71,7 +60,6 @@ pub(crate) struct Kafka {
     pub(crate) broker: String,
     pub(crate) topic: String,
     pub(crate) consumer_group: String,
-    pub(crate) message_timeout_ms: String,
     // pub (crate) enable_idempotence: bool,
     // pub (crate) processing_guarantee: String,
     // pub (crate) number_of_consumers:i32

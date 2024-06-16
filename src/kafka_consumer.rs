@@ -1,10 +1,10 @@
 use rdkafka::{ClientConfig, ClientContext, Message, TopicPartitionList};
 use rdkafka::config::RDKafkaLogLevel;
-use rdkafka::consumer::{BaseConsumer, CommitMode, Consumer, ConsumerContext, Rebalance, StreamConsumer};
+use rdkafka::consumer::{CommitMode, Consumer, ConsumerContext, Rebalance, StreamConsumer};
 use rdkafka::error::KafkaResult;
 use log::{info, warn};
 use rdkafka::message::Headers;
-use crate::greetings::{Greeting, GreetingRepository, GreetingRepositoryImpl, RepoError};
+use crate::greetings::{GreetingRepository, GreetingRepositoryImpl, RepoError};
 use crate::{greetings, Settings};
 
 struct CustomContext;
@@ -28,11 +28,13 @@ impl ConsumerContext for CustomContext {
 // A type alias with your custom consumer can be created for convenience.
 type LoggingConsumer = StreamConsumer<CustomContext>;
 #[derive(Debug)]
-pub struct ConsumerError;
+pub struct ConsumerError{
+    err_msg: String
+}
 
-impl From<greetings::RepoError> for ConsumerError{
+impl From<RepoError> for ConsumerError{
     fn from(value: RepoError) -> Self {
-        ConsumerError{}
+        ConsumerError{ err_msg: value.error_message}
     }
 }
 pub async fn consume_and_print() -> Result<(),ConsumerError>{
@@ -51,11 +53,11 @@ pub async fn consume_and_print() -> Result<(),ConsumerError>{
         .create_with_context(context)
         .expect("Consumer creation failed");
 
+    let mut repo = GreetingRepositoryImpl::new(app_config.db.database_url).await?;
     consumer
         .subscribe(&[&app_config.kafka.topic])
         .expect("Can't subscribe to specified topics");
 
-    let mut repo = GreetingRepositoryImpl::new(app_config.db.database_url).await?;
     info!("Starting to subscriobe on topic: {}", &app_config.kafka.topic);
 
     loop {
@@ -83,5 +85,4 @@ pub async fn consume_and_print() -> Result<(),ConsumerError>{
             }
         };
     }
-    Ok(())
 }

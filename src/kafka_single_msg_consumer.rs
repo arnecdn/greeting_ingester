@@ -1,4 +1,3 @@
-use chrono::Local;
 use derive_more::Display;
 use futures_util::StreamExt;
 use log::info;
@@ -12,7 +11,6 @@ async fn consume_single()->Result<(), GreetingProcessorError> {
     let mut kafka_config: ClientConfig = ClientConfig::new();
     kafka_config.set("bootstrap.servers", app_config.kafka.broker);
     kafka_config.set("group.id", app_config.kafka.consumer_group);
-    ;
     // put here to show that the microservice has started
     // println!("Datetime:{},Started...", Local::now());
 

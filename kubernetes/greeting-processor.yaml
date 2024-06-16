@@ -14,7 +14,7 @@ spec:
         spec:
             containers:
                 -   name: greeting-processor-rust
-                    image: arnecdn/greeting-processor-rust:0.20
+                    image: arnecdn/greeting-processor-rust:0.21
                     imagePullPolicy: IfNotPresent
                     resources:
                         requests:

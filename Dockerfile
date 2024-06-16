@@ -79,6 +79,5 @@ COPY --chown=appuser:appuser --from=build /bin/migrations /bin/migrations
 EXPOSE 8090
 
 # What the container should run when it is started.
-#CMD ["/bin/server"]
-ENTRYPOINT ["tail"]
-CMD ["-f","/dev/null"]
+#ENTRYPOINT ["tail"]
+#CMD ["-f","/dev/null"]

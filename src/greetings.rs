@@ -12,21 +12,6 @@ pub struct GreetingRepositoryImpl{
     pool: Pool<sqlx::Postgres>,
 }
 
-pub struct RepoError{
-    pub error_message: String,
-}
-
-impl From<sqlx::Error> for RepoError{
-    fn from(value: sqlx::Error) -> Self {
-        RepoError{ error_message: value.to_string()}
-    }
-}
-impl From<MigrateError> for RepoError{
-    fn from(value: MigrateError) -> Self {
-        RepoError{ error_message: value.to_string()}
-    }
-}
-
 
 #[async_trait]
 pub trait GreetingRepository{
@@ -65,6 +50,22 @@ pub struct Greeting {
     heading: String,
     message: String,
     created: NaiveDateTime,
+}
+
+#[derive(Debug)]
+pub struct RepoError{
+    pub error_message: String,
+}
+
+impl From<sqlx::Error> for RepoError{
+    fn from(value: sqlx::Error) -> Self {
+        RepoError{ error_message: value.to_string()}
+    }
+}
+impl From<MigrateError> for RepoError{
+    fn from(value: MigrateError) -> Self {
+        RepoError{ error_message: value.to_string()}
+    }
 }
 
 

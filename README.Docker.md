@@ -33,9 +33,9 @@ Mount generated sqlx cache to build
 ```
 --mount=type=bind,source=.sqlx,target=.sqlx \
 ```
-gs
+
 ```
-TAG="0.20" 
+TAG="0.21" 
 docker build -q -t "arnecdn/greeting-processor-rust:${TAG}" . &&
 mkdir -p .docker && docker image save -o .docker/greeting-processor-rust.tar "arnecdn/greeting-processor-rust:${TAG}" &&
 minikube image load .docker/greeting-processor-rust.tar

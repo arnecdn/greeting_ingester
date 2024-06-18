@@ -75,8 +75,6 @@ USER appuser
 COPY --chown=appuser:appuser --from=build /bin/server /bin/
 COPY --chown=appuser:appuser --from=build /bin/migrations /bin/migrations
 
-# Expose the port that the application listens on.
-EXPOSE 8090
 
 # What the container should run when it is started.
 #ENTRYPOINT ["tail"]

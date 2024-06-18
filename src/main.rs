@@ -7,14 +7,18 @@ use config::Config;
 use dotenv::dotenv;
 use log::{Level, LevelFilter, Metadata, Record};
 use serde::Deserialize;
+use crate::greetings::GreetingRepositoryImpl;
+use crate::kafka_consumer::{ConsumerError, ConsumeTopics};
 
 
 #[tokio::main]
 async fn main() {
     log::set_logger(&CONSOLE_LOGGER).expect("Not able to config logger");
     log::set_max_level(LevelFilter::Info);
-
-    kafka_consumer::consume_and_print().await.expect("Something bad happened...");
+    let app_config = Settings::new();
+    let repo = Box::new(GreetingRepositoryImpl::new(app_config.db.database_url.clone()).await.expect("failed"));
+    let consumer = kafka_consumer::KafkaConsumer::new(app_config).await.expect("Failed to create kafka consumer");
+    consumer.consume_and_store(repo).await.expect("Failed starting subscription...")
 }
 
 static CONSOLE_LOGGER: ConsoleLogger = ConsoleLogger;

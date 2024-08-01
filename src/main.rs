@@ -8,7 +8,7 @@ use dotenv::dotenv;
 use log::{Level, LevelFilter, Metadata, Record};
 use serde::Deserialize;
 use crate::greetings::GreetingRepositoryImpl;
-use crate::kafka_consumer::{ConsumerError, ConsumeTopics};
+use crate::kafka_consumer::{ConsumeTopics};
 
 
 #[tokio::main]

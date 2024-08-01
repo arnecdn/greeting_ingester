@@ -6,7 +6,7 @@ use rdkafka::consumer::{CommitMode, Consumer, ConsumerContext, Rebalance, Stream
 use rdkafka::error::{KafkaError, KafkaResult};
 use rdkafka::message::Headers;
 
-use crate::{greetings, Settings};
+use crate::{Settings};
 use crate::greetings::{GreetingRepository, GreetingRepositoryImpl, RepoError};
 
 struct CustomContext;

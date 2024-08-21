@@ -48,3 +48,4 @@ Setting namespace=default because of some unsolved problem with accessing Kafka 
 ```
 helm install keda kedacore/keda --namespace default
 ```
+

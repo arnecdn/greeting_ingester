@@ -1,8 +1,8 @@
 
 use async_trait::async_trait;
 use log::{info, warn};
-use opentelemetry::{global, KeyValue, StringValue};
-use opentelemetry::trace::{Span, Tracer};
+use opentelemetry::{global, Key, KeyValue, StringValue};
+use opentelemetry::trace::{Span, SpanKind, Status, Tracer};
 use rdkafka::{ClientConfig, ClientContext, Message, TopicPartitionList};
 use rdkafka::config::RDKafkaLogLevel;
 use rdkafka::consumer::{CommitMode, Consumer, ConsumerContext, Rebalance, StreamConsumer};
@@ -109,19 +109,19 @@ impl ConsumeTopics for KafkaConsumer {
                         for header in headers.iter() {
                             info!("  Header {:#?}: {:?}", header.key, header.value);
                         }
+
+                        let context = global::get_text_map_propagator(|propagator| {
+                            propagator.extract(&HeaderExtractor(headers))
+                        });
+
+                        let mut span =
+                            global::tracer("consumer").start_with_context("consume_payload", &context);
+
+                        span.set_status(Status::Ok);
+                        span.end();
                     }
                     self.consumer.commit_message(&m, CommitMode::Async).unwrap();
 
-                    //(1)
-                    let context = global::get_text_map_propagator(|propagator| {
-                        propagator.extract(&HeaderExtractor(m.headers().unwrap()))
-                    });
-
-                    //(2)
-                    let mut span =
-                        global::tracer("greeting_consumer").start_with_context("consume_payload", &context);
-                    //span.set_attribute(KeyValue { key: Key::new("payload"), value: opentelemetry::Value::String(StringValue::from(payload.to_string())) });
-                    span.end();
                 }
             };
         }

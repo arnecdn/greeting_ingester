@@ -14,7 +14,7 @@ spec:
         spec:
             containers:
                 -   name: greeting-processor-rust
-                    image: arnecdn/greeting-processor-rust:0.22
+                    image: arnecdn/greeting-processor-rust:0.1
                     imagePullPolicy: IfNotPresent
                     resources:
                         requests:
@@ -44,9 +44,6 @@ spec:
                           value: "http://my-opentelemetry-collector:4317"
                     command:
                               - "/bin/server"
-#                    command:
-#                        - "tail -f /dev/null"
-
 
 
 ---
@@ -61,27 +58,6 @@ spec:
         app: greeting-processor-rust
 
 ---
-#apiVersion: keda.sh/v1alpha1
-#kind: ScaledObject
-#metadata:
-#    name: greeting-processor-rust-scaledobject
-#    namespace: default
-#    labels:
-#        deploymentName: greeting-processor-rust
-#spec:
-#    scaleTargetRef:
-#        name: greeting-processor-rust
-#    pollingInterval: 5
-#    minReplicaCount: 0
-#    maxReplicaCount: 10  # Max can go upto num of partitions you have in the topic
-#    triggers:
-#        - type: kafka
-#          metadata:
-#              consumerGroup: "greeting_consumers"
-#              bootstrapServers: kafka-service.default.svc.cluster.local:9093
-#              topic: greetings
-#              lagThreshold: "10"
-#              offsetRestPolicy: latest
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:

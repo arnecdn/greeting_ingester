@@ -68,7 +68,7 @@ metadata:
 spec:
     scaleTargetRef:
         name: greeting-processor-rust
-    pollingInterval: 5
+    pollingInterval: 1
     minReplicaCount: 0
     maxReplicaCount: 10  # Max can go upto num of partitions you have in the topic
     triggers:

@@ -1,5 +1,4 @@
 mod kafka_consumer;
-mod kafka_single_msg_consumer;
 mod greetings;
 
 use config::Config;

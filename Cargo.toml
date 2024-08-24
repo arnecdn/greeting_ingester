@@ -26,11 +26,11 @@ uuid = { version = "1.3.1", features = ["v7"]}
 
 
 #OTEL
-opentelemetry = {features = ["metrics", "logs"] }
-opentelemetry_sdk = {  features = ["rt-tokio", "logs"] }
-opentelemetry-otlp = {  features = ["tonic", "metrics", "logs"] }
+opentelemetry = {version = "0.24.0",features = ["metrics", "logs"] }
+opentelemetry_sdk = {version = "0.24.1",  features = ["rt-tokio", "logs"] }
+opentelemetry-otlp = {version = "0.17.0",  features = ["tonic", "metrics", "logs"] }
 opentelemetry-semantic-conventions = "0.16.0"
-opentelemetry-appender-tracing = {  default-features = false}
+opentelemetry-appender-tracing = {  version = "0.5.0",default-features = false}
 tracing-subscriber = "0.3.18"
 tracing = { version = "0.1.40", features = ["std"]}
 tracing-core ="0.1.32"

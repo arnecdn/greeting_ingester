@@ -1,8 +1,8 @@
 
 use async_trait::async_trait;
 use log::{info, warn};
-use opentelemetry::{global, Key, KeyValue, StringValue};
-use opentelemetry::trace::{Span, SpanKind, Status, Tracer};
+use opentelemetry::{global};
+use opentelemetry::trace::{Span,  Status, Tracer};
 use rdkafka::{ClientConfig, ClientContext, Message, TopicPartitionList};
 use rdkafka::config::RDKafkaLogLevel;
 use rdkafka::consumer::{CommitMode, Consumer, ConsumerContext, Rebalance, StreamConsumer};

@@ -1,19 +1,18 @@
 mod kafka_consumer;
 mod greetings;
 mod observability;
+mod settings;
 
-use config::Config;
-use dotenv::dotenv;
 use opentelemetry::{global};
 
 use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
 
-use serde::Deserialize;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use crate::greetings::GreetingRepositoryImpl;
 use crate::kafka_consumer::{ConsumeTopics};
 use crate::observability::{init_logs, init_tracer_provider};
+use crate::settings::Settings;
 
 #[tokio::main]
 async fn main() {
@@ -39,41 +38,3 @@ async fn main() {
     logger_provider.shutdown().expect("Failed shutting down loggprovider");
 }
 
-
-#[derive(Deserialize)]
-pub(crate) struct Settings {
-    pub(crate) kafka: Kafka,
-    pub db: Db,
-    pub otel_collector: OtelCollector
-}
-
-impl Settings {
-    pub fn new() -> Self {
-        dotenv().ok();
-
-        let settings = Config::builder()
-            .add_source(config::File::with_name("./res/server").required(false))
-            .add_source(config::Environment::with_prefix("APP").separator("__"))
-            .build()
-            .unwrap();
-
-        settings.try_deserialize().unwrap()
-    }
-}
-
-#[derive(Deserialize)]
-pub(crate) struct Kafka {
-    pub(crate) broker: String,
-    pub(crate) topic: String,
-    pub(crate) consumer_group: String,
-}
-
-#[derive(Deserialize)]
-pub struct Db{
-    pub database_url: String
-}
-
-#[derive(Deserialize)]
-pub (crate) struct OtelCollector{
-    pub (crate) oltp_endpoint: String
-}

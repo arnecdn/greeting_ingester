@@ -1,4 +1,7 @@
-
+use std::str::Utf8Error;
+use std::{thread, time};
+use std::thread::Thread;
+use std::time::Duration;
 use async_trait::async_trait;
 use log::{info, warn};
 use opentelemetry::{global};
@@ -44,6 +47,11 @@ impl From<RepoError> for ConsumerError {
         ConsumerError { err_msg: value.error_message }
     }
 }
+impl From<Utf8Error> for ConsumerError {
+    fn from(value: Utf8Error) -> Self {
+        ConsumerError { err_msg: value.to_string() }
+    }
+}
 
 impl From<KafkaError> for ConsumerError {
     fn from(value: KafkaError) -> Self {
@@ -51,6 +59,11 @@ impl From<KafkaError> for ConsumerError {
     }
 }
 
+impl From<&str> for ConsumerError {
+    fn from(value: &str) -> Self {
+        ConsumerError { err_msg: value.to_string() }
+    }
+}
 pub struct KafkaConsumer {
     // config: Settings,
     topic: String,
@@ -97,31 +110,32 @@ impl ConsumeTopics for KafkaConsumer {
                     let payload = match m.payload_view::<str>() {
                         None => "",
                         Some(Ok(s)) => s,
-                        Some(Err(e)) => {
-                            warn!("Error while deserializing message payload: {:?}", e);
-                            ""
-                        }
+                        Some(Err(e)) => return Err(ConsumerError::from(e)),
                     };
+                    let headers = match m.headers(){
+                        None =>   return Err(ConsumerError::from("No headers found")),
+                        Some(v) =>   v
+                    };
+
+                    let context = global::get_text_map_propagator(|propagator| {
+                        propagator.extract(&HeaderExtractor(headers))
+                    });
+
+                    let mut span =
+                        global::tracer("consumer").start_with_context("consume_payload", &context);
+
                     info!("topic: {}, partition: {}, offset: {}, timestamp: {:?}, payload: '{}'",
                     m.topic(), m.partition(), m.offset(), m.timestamp(), payload,);
+
                     let msg = serde_json::from_str(&payload).unwrap();
                     repo.store(msg).await?;
-                    if let Some(headers) = m.headers() {
-                        for header in headers.iter() {
-                            info!("  Header {:#?}: {:?}", header.key, header.value);
-                        }
-
-                        let context = global::get_text_map_propagator(|propagator| {
-                            propagator.extract(&HeaderExtractor(headers))
-                        });
-
-                        let mut span =
-                            global::tracer("consumer").start_with_context("consume_payload", &context);
-
-                        span.set_status(Status::Ok);
-                        span.end();
-                    }
                     self.consumer.commit_message(&m, CommitMode::Async).unwrap();
+
+                    //KEDA test
+                    thread::sleep(time::Duration::from_millis(1000));
+
+                    span.set_status(Status::Ok);
+                    span.end();
 
                 }
             };

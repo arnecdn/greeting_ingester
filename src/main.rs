@@ -1,26 +1,19 @@
 mod kafka_consumer;
 mod greetings;
+mod observability;
 
 use config::Config;
 use dotenv::dotenv;
-use once_cell::sync::Lazy;
-use opentelemetry::{global, KeyValue};
-use opentelemetry::logs::LogError;
-use opentelemetry::propagation::Extractor;
-use opentelemetry::trace::TraceError;
+use opentelemetry::{global};
+
 use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
-use opentelemetry_otlp::WithExportConfig;
-use opentelemetry_sdk::logs::LoggerProvider;
-use opentelemetry_sdk::{Resource, runtime};
-use opentelemetry_sdk::propagation::TraceContextPropagator;
-use opentelemetry_sdk::trace::TracerProvider;
-use rdkafka::message::{BorrowedHeaders, Headers};
+
 use serde::Deserialize;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use crate::greetings::GreetingRepositoryImpl;
 use crate::kafka_consumer::{ConsumeTopics};
-
+use crate::observability::{init_logs, init_tracer_provider};
 
 #[tokio::main]
 async fn main() {
@@ -41,7 +34,9 @@ async fn main() {
 
     let repo = Box::new(GreetingRepositoryImpl::new(app_config.db.database_url.clone()).await.expect("failed"));
     let consumer = kafka_consumer::KafkaConsumer::new(app_config).await.expect("Failed to create kafka consumer");
-    consumer.consume_and_store(repo).await.expect("Failed starting subscription...")
+    consumer.consume_and_store(repo).await.expect("Failed starting subscription...");
+    global::shutdown_tracer_provider();
+    logger_provider.shutdown().expect("Failed shutting down loggprovider");
 }
 
 
@@ -81,56 +76,4 @@ pub struct Db{
 #[derive(Deserialize)]
 pub (crate) struct OtelCollector{
     pub (crate) oltp_endpoint: String
-}
-
-static RESOURCE: Lazy<Resource> = Lazy::new(|| {
-    Resource::new(vec![KeyValue::new(
-        opentelemetry_semantic_conventions::resource::SERVICE_NAME,
-        "greeting_processor_rust",
-    )])
-});
-
-fn init_logs(otlp_endpoint: &str) -> Result<LoggerProvider, LogError> {
-    opentelemetry_otlp::new_pipeline()
-        .logging()
-        .with_resource(RESOURCE.clone())
-        .with_exporter(
-            opentelemetry_otlp::new_exporter()
-                .tonic()
-                .with_endpoint(otlp_endpoint),
-        )
-        .install_batch(runtime::Tokio)
-}
-
-fn init_tracer_provider(otlp_endpoint: &str) -> Result<TracerProvider, TraceError> {
-    global::set_text_map_propagator(TraceContextPropagator::new());
-
-    opentelemetry_otlp::new_pipeline()
-        .tracing()
-        .with_exporter(
-            opentelemetry_otlp::new_exporter()
-                .tonic()
-                .with_endpoint(otlp_endpoint),
-        )
-        .with_trace_config(opentelemetry_sdk::trace::Config::default().with_resource(RESOURCE.clone()))
-        .install_batch(runtime::Tokio)
-}
-
-pub struct HeaderExtractor<'a>(pub &'a BorrowedHeaders);
-
-impl<'a> Extractor for HeaderExtractor<'a> {
-    fn get(&self, key: &str) -> Option<&str> {
-        for i in 0..self.0.count() {
-            if let Ok(val) = self.0.get_as::<str>(i) {
-                if val.key == key {
-                    return val.value
-                }
-            }
-        }
-        None
-    }
-
-    fn keys(&self) -> Vec<&str> {
-        self.0.iter().map(|kv| kv.key).collect::<Vec<_>>()
-    }
 }

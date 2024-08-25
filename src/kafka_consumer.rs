@@ -9,8 +9,9 @@ use rdkafka::consumer::{CommitMode, Consumer, ConsumerContext, Rebalance, Stream
 use rdkafka::error::{KafkaError, KafkaResult};
 use rdkafka::message::Headers;
 
-use crate::{HeaderExtractor, Settings};
+use crate::{ Settings};
 use crate::greetings::{GreetingRepository, GreetingRepositoryImpl, RepoError};
+use crate::observability::HeaderExtractor;
 
 struct CustomContext;
 

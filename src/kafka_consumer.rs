@@ -108,10 +108,11 @@ impl ConsumeTopics for KafkaConsumer {
                 Err(e) => warn!("Kafka error: {}", e),
                 Ok(m) => {
                     let payload = match m.payload_view::<str>() {
-                        None => "",
-                        Some(Ok(s)) => s,
+                        None => return Err(ConsumerError::from("No payload found")),
                         Some(Err(e)) => return Err(ConsumerError::from(e)),
+                        Some(Ok(s)) => s,
                     };
+
                     let headers = match m.headers(){
                         None =>   return Err(ConsumerError::from("No headers found")),
                         Some(v) =>   v

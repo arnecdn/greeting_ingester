@@ -125,8 +125,12 @@ impl ConsumeTopics for KafkaConsumer {
                     let mut span =
                         global::tracer("consumer").start_with_context("consume_payload", &context);
 
-                    info!("topic: {}, partition: {}, offset: {}, timestamp: {:?}, payload: '{}'",
-                    m.topic(), m.partition(), m.offset(), m.timestamp(), payload,);
+                    let header_str = headers.iter().fold(String::new(),|a,h| ->String {
+                         format!("{},  Header {:#?}: {:?}", a,h.key, h.value)
+                    });
+
+                    info!("topic: {}, partition: {}, offset: {}, timestamp: {:?}, headers{:?},  payload: '{}'",
+                    m.topic(), m.partition(), m.offset(), m.timestamp(), header_str, payload,);
 
                     let msg = serde_json::from_str(&payload).unwrap();
                     repo.store(msg).await?;

@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use once_cell::sync::Lazy;
 use opentelemetry::{global, KeyValue};
 use opentelemetry::logs::LogError;

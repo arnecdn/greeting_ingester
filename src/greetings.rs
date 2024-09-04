@@ -1,3 +1,4 @@
+use std::fmt::{Debug, Formatter};
 use std::str::FromStr;
 use async_trait::async_trait;
 use chrono::NaiveDateTime;
@@ -6,7 +7,6 @@ use sqlx::{migrate,  Pool};
 use sqlx::migrate::MigrateError;
 use sqlx::postgres::PgPoolOptions;
 use uuid::Uuid;
-
 
 pub struct GreetingRepositoryImpl{
     pool: Pool<sqlx::Postgres>,
@@ -18,6 +18,11 @@ pub trait GreetingRepository{
     async fn store(&mut self, greeting: Greeting) -> Result<(), RepoError>;
 }
 
+impl Debug for GreetingRepositoryImpl {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "GreetingRepository")
+    }
+}
 impl GreetingRepositoryImpl{
     pub async fn new(db_url: String)-> Result<Self, RepoError>{
 

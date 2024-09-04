@@ -1,20 +1,20 @@
 use std::str::Utf8Error;
-use std::{thread, time};
-use std::thread::Thread;
-use std::time::Duration;
+use std::fmt::{Debug, Formatter};
 use async_trait::async_trait;
 use log::{info, warn};
 use opentelemetry::{global};
-use opentelemetry::trace::{Span,  Status, Tracer};
+use opentelemetry::trace::{Status, Tracer};
 use rdkafka::{ClientConfig, ClientContext, Message, TopicPartitionList};
 use rdkafka::config::RDKafkaLogLevel;
 use rdkafka::consumer::{CommitMode, Consumer, ConsumerContext, Rebalance, StreamConsumer};
 use rdkafka::error::{KafkaError, KafkaResult};
-use rdkafka::message::Headers;
-
-use crate::{ Settings};
-use crate::greetings::{GreetingRepository, GreetingRepositoryImpl, RepoError};
-use crate::observability::HeaderExtractor;
+use rdkafka::message::{BorrowedMessage, Headers};
+use tracing::{instrument, span, Span};
+use tracing_core::Level;
+use tracing_opentelemetry::OpenTelemetrySpanExt;
+use crate::{Settings};
+use crate::greetings::{ GreetingRepository, GreetingRepositoryImpl, RepoError};
+use crate::open_telemetry::HeaderExtractor;
 
 struct CustomContext;
 
@@ -67,81 +67,101 @@ impl From<&str> for ConsumerError {
 pub struct KafkaConsumer {
     // config: Settings,
     topic: String,
-    consumer: LoggingConsumer
+    consumer_group: String,
+    // consumer: LoggingConsumer,
+    repo: Box<GreetingRepositoryImpl>,
+    kafka_broker: String,
+}
+
+impl Debug for KafkaConsumer {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "KafkaConsumer(topic) {}", &self.topic)
+    }
 }
 
 impl KafkaConsumer {
-    pub async fn new(settings: Settings) -> Result<Self, ConsumerError> {
-        return Ok(Self {
+    pub async fn new(settings: Settings, greeting_repo: Box<GreetingRepositoryImpl>) -> Result<Self, ConsumerError> {
+        Ok(Self {
             topic: settings.kafka.topic,
-            consumer:ClientConfig::new()
-                .set("group.id", settings.kafka.consumer_group)
-                .set("bootstrap.servers", settings.kafka.broker)
-                .set("enable.partition.eof", "false")
-                .set("session.timeout.ms", "6000")
-                .set("enable.auto.commit", "false")
-                .set_log_level(RDKafkaLogLevel::Debug)
-                .create_with_context(CustomContext).expect("Failed creating consumer")
-
+            consumer_group: settings.kafka.consumer_group,
+            kafka_broker: settings.kafka.broker,
+            repo: greeting_repo,
         })
+    }
+
+    #[instrument]
+    async fn store_message(&mut self, m: &BorrowedMessage<'_>) -> Result<(), ConsumerError> {
+        let payload = match m.payload_view::<str>() {
+            None => return Err(ConsumerError::from("No payload found")),
+            Some(Err(e)) => return Err(ConsumerError::from(e)),
+            Some(Ok(s)) => s,
+        };
+
+        let headers = match m.headers() {
+            None => return Err(ConsumerError::from("No headers found")),
+            Some(v) => v
+        };
+        let context = global::get_text_map_propagator(|propagator| {
+            propagator.extract(&HeaderExtractor(headers))
+        });
+
+        let header_str = headers.iter().fold(String::new(), |a, h| -> String {
+            format!("{},  Header {:#?}: {:?}", a, h.key, h.value)
+        });
+
+
+        let span = Span::current();
+
+        span.set_parent(context);
+        let _enter = span.enter();
+        // let mut span =
+        //     global::tracer("consumer").start_with_context("consume_payload", &context);
+
+        // span!( Level::INFO, "consume_payload", header_str, payload);
+
+        info!("topic: {}, partition: {}, offset: {}, timestamp: {:?}, headers{:?},  payload: '{}'",
+                    m.topic(), m.partition(), m.offset(), m.timestamp(), header_str, payload,);
+
+        let msg = serde_json::from_str(&payload).unwrap();
+        self.repo.store(msg).await.expect("Error");
+        // span.set_status(Status::Ok);
+        // span.end();
+
+        Ok(())
     }
 }
 
 #[async_trait]
 pub trait ConsumeTopics {
-    async fn consume_and_store(&self, repo: Box<GreetingRepositoryImpl>) -> Result<(), ConsumerError>;
+    async fn consume_and_store(&mut self) -> Result<(), ConsumerError>;
 }
 
 
 #[async_trait]
 impl ConsumeTopics for KafkaConsumer {
-    async fn consume_and_store(&self, mut repo: Box<GreetingRepositoryImpl>) -> Result<(), ConsumerError> {
 
-        self.consumer
+    async fn consume_and_store(&mut self) -> Result<(), ConsumerError> {
+        let consumer: LoggingConsumer = ClientConfig::new()
+            .set("group.id", &self.consumer_group)
+            .set("bootstrap.servers", &self.kafka_broker)
+            .set("enable.partition.eof", "false")
+            .set("session.timeout.ms", "6000")
+            .set("enable.auto.commit", "false")
+            .set_log_level(RDKafkaLogLevel::Debug)
+            .create_with_context(CustomContext).expect("Failed creating consumer");
+
+        consumer
             .subscribe(&[&self.topic])?;
 
         info!("Starting to subscriobe on topic: {}", &self.topic);
-        // let mut repo = GreetingRepositoryImpl::new(self.config.db.database_url.clone()).await?;
 
         loop {
-            match &self.consumer.recv().await {
+
+            match &consumer.recv().await {
                 Err(e) => warn!("Kafka error: {}", e),
                 Ok(m) => {
-                    let payload = match m.payload_view::<str>() {
-                        None => return Err(ConsumerError::from("No payload found")),
-                        Some(Err(e)) => return Err(ConsumerError::from(e)),
-                        Some(Ok(s)) => s,
-                    };
-
-                    let headers = match m.headers(){
-                        None =>   return Err(ConsumerError::from("No headers found")),
-                        Some(v) =>   v
-                    };
-
-                    let context = global::get_text_map_propagator(|propagator| {
-                        propagator.extract(&HeaderExtractor(headers))
-                    });
-
-                    let mut span =
-                        global::tracer("consumer").start_with_context("consume_payload", &context);
-
-                    let header_str = headers.iter().fold(String::new(),|a,h| ->String {
-                         format!("{},  Header {:#?}: {:?}", a,h.key, h.value)
-                    });
-
-                    info!("topic: {}, partition: {}, offset: {}, timestamp: {:?}, headers{:?},  payload: '{}'",
-                    m.topic(), m.partition(), m.offset(), m.timestamp(), header_str, payload,);
-
-                    let msg = serde_json::from_str(&payload).unwrap();
-                    repo.store(msg).await?;
-                    self.consumer.commit_message(&m, CommitMode::Async).unwrap();
-
-                    //KEDA test
-                    thread::sleep(time::Duration::from_millis(1000));
-
-                    span.set_status(Status::Ok);
-                    span.end();
-
+                    self.store_message(m).await?;
+                    consumer.commit_message(&m, CommitMode::Async)?;
                 }
             };
         }

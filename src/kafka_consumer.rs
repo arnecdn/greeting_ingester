@@ -89,7 +89,7 @@ impl KafkaConsumer {
         })
     }
 
-    #[instrument]
+    #[instrument(name="greeting_rust_processor")]
     async fn store_message(&mut self, m: &BorrowedMessage<'_>) -> Result<(), ConsumerError> {
         let payload = match m.payload_view::<str>() {
             None => return Err(ConsumerError::from("No payload found")),
@@ -111,15 +111,14 @@ impl KafkaConsumer {
 
 
         let span = Span::current();
-
         span.set_parent(context);
-        let _enter = span.enter();
+        // let _enter = span.enter();
         // let mut span =
         //     global::tracer("consumer").start_with_context("consume_payload", &context);
 
         // span!( Level::INFO, "consume_payload", header_str, payload);
 
-        info!("topic: {}, partition: {}, offset: {}, timestamp: {:?}, headers{:?},  payload: '{}'",
+        info!("Consumed topic: {}, partition: {}, offset: {}, timestamp: {:?}, headers{:?},  payload: '{}'",
                     m.topic(), m.partition(), m.offset(), m.timestamp(), header_str, payload,);
 
         let msg = serde_json::from_str(&payload).unwrap();

@@ -42,10 +42,5 @@ minikube image load .docker/greeting-processor-rust.tar
 ```
 
 
-For installation of Keda, use Helm with the following commandline parameters. 
-Setting namespace=default because of some unsolved problem with accessing Kafka in different namespace
 
-```
-helm install keda kedacore/keda --namespace default
-```
 

@@ -1,5 +1,7 @@
 use std::fmt::{Debug, Formatter};
 use std::str::FromStr;
+use std::thread;
+use std::time::Duration;
 use async_trait::async_trait;
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
@@ -8,13 +10,41 @@ use sqlx::migrate::MigrateError;
 use sqlx::postgres::PgPoolOptions;
 use uuid::Uuid;
 
-pub struct GreetingRepositoryImpl{
-    pool: Pool<sqlx::Postgres>,
+pub struct GreetingRepositoryImpl {
+    pool: Box<Pool<sqlx::Postgres>>,
 }
 
+pub async fn create_pool(db_url: String) -> Result<Pool<sqlx::Postgres>, RepoError> {
+    let pool = PgPoolOptions::new()
+        .max_connections(100)
+        .connect(&*db_url).await?;
+    migrate!("./migrations")
+        .run(&pool).await?;
+
+    Ok(pool)
+}
+
+pub async fn generate_logg(pool : Box<Pool<sqlx::Postgres>>) -> Result<(), RepoError> {
+    loop {
+        thread::sleep(Duration::from_secs(5));
+        let mut transaction = pool.begin().await?;
+        sqlx::query("do
+                        $$
+                            begin
+                                perform public.generate_logg();
+                            end
+                        $$;")
+
+            .execute(&mut *transaction).await?;
+
+        transaction.commit().await?;
+        tokio::task::yield_now().await;
+    }
+    Ok(())
+}
 
 #[async_trait]
-pub trait GreetingRepository{
+pub trait GreetingRepository {
     async fn store(&mut self, greeting: Greeting) -> Result<(), RepoError>;
 }
 
@@ -23,21 +53,22 @@ impl Debug for GreetingRepositoryImpl {
         write!(f, "GreetingRepository")
     }
 }
-impl GreetingRepositoryImpl{
-    pub async fn new(db_url: String)-> Result<Self, RepoError>{
+impl GreetingRepositoryImpl {
+    pub async fn new(pool : Box<Pool<sqlx::Postgres>>) -> Result<Self, RepoError> {
+        // let pool = PgPoolOptions::new()
+        //     .max_connections(100)
+        //     .connect(&*db_url).await?;
+        // migrate!("./migrations")
+        //     .run(&pool).await?;
 
-        let pool = PgPoolOptions::new()
-            .max_connections(100)
-            .connect(&*db_url).await?;
-        migrate!("./migrations")
-            .run(&pool).await?;
-
-        Ok(Self{pool })
+        Ok(Self { pool })
     }
+
+
 }
 #[async_trait]
 impl GreetingRepository for GreetingRepositoryImpl {
-     async fn store (&mut self, greeting: Greeting) -> Result<(), RepoError> {
+    async fn store(&mut self, greeting: Greeting) -> Result<(), RepoError> {
         let mut transaction = self.pool.begin().await?;
 
         let id: (i64,) = sqlx::query_as("INSERT INTO greeting(message_id, \"from\", \"to\", heading, message, created) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id")
@@ -49,9 +80,9 @@ impl GreetingRepository for GreetingRepositoryImpl {
             .bind(greeting.created)
             .fetch_one(&mut *transaction).await?;
 
-         sqlx::query("INSERT INTO ikke_paa_logg(greeting_id) VALUES ($1)")
-             .bind(id.0)
-             .execute(&mut *transaction).await?;
+        sqlx::query("INSERT INTO ikke_paa_logg(greeting_id) VALUES ($1)")
+            .bind(id.0)
+            .execute(&mut *transaction).await?;
 
         transaction.commit().await?;
         Ok(())
@@ -69,18 +100,18 @@ pub struct Greeting {
 }
 
 #[derive(Debug)]
-pub struct RepoError{
+pub struct RepoError {
     pub error_message: String,
 }
 
-impl From<sqlx::Error> for RepoError{
+impl From<sqlx::Error> for RepoError {
     fn from(value: sqlx::Error) -> Self {
-        RepoError{ error_message: value.to_string()}
+        RepoError { error_message: value.to_string() }
     }
 }
-impl From<MigrateError> for RepoError{
+impl From<MigrateError> for RepoError {
     fn from(value: MigrateError) -> Self {
-        RepoError{ error_message: value.to_string()}
+        RepoError { error_message: value.to_string() }
     }
 }
 

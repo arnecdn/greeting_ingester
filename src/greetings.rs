@@ -38,9 +38,7 @@ pub async fn generate_logg(pool : Box<Pool<sqlx::Postgres>>) -> Result<(), RepoE
             .execute(&mut *transaction).await?;
 
         transaction.commit().await?;
-        tokio::task::yield_now().await;
     }
-    Ok(())
 }
 
 #[async_trait]

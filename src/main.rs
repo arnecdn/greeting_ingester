@@ -5,15 +5,18 @@ mod settings;
 
 use std::thread;
 use std::time::Duration;
-use futures_util::task::SpawnExt;
+
+use log::{info};
 use opentelemetry::{global};
 use opentelemetry::trace::TracerProvider;
 use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
 use opentelemetry_sdk::propagation::TraceContextPropagator;
+use sqlx::Pool;
+use sqlx::postgres::PgPoolOptions;
 use tracing_subscriber::EnvFilter;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
-use crate::greetings::{GreetingRepository, GreetingRepositoryImpl};
+use crate::greetings::{GreetingRepositoryImpl, RepoError};
 use crate::kafka_consumer::{ConsumeTopics};
 // use crate::open_telemetry::{init_logs, init_metrics, init_tracer_provider};
 use crate::settings::Settings;
@@ -48,16 +51,27 @@ async fn main() {
 
     // let meter_provider = init_metrics(&app_config.otel_collector.oltp_endpoint).expect("Failed initializing metrics");
     // global::set_meter_provider(meter_provider);
-    let pool = Box::new(greetings::create_pool(app_config.db.database_url.clone()).await.expect("Failed establishing db pool"));
-    let logg_generator_handle = tokio::task::spawn(greetings::generate_logg(pool.clone()));
+    let pool = Box::new(init_db(app_config.db.database_url.clone()).await.expect("Expected db pool"));
     let repo = Box::new(GreetingRepositoryImpl::new(pool.clone()).await.expect("failed"));
-
     let mut consumer = kafka_consumer::KafkaConsumer::new(app_config, repo).await.expect("Failed to create kafka consumer");
+
+    let logg_generator_handle = tokio::task::spawn(greetings::generate_logg(pool.clone()));
     let kafka_consumer_handle = consumer.consume_and_store(); //.await.expect("Failed starting subscription...");
-    tokio::join!(logg_generator_handle, kafka_consumer_handle);
+    let (r1, r2) = tokio::join!(logg_generator_handle, kafka_consumer_handle);
+
+    info!("{:?} {:?}", r1.unwrap(), r2.unwrap());
     global::shutdown_tracer_provider();
     logger_provider.shutdown().expect("Failed shutting down loggprovider");
 }
 
 
+pub async fn init_db(db_url: String) -> Result<Pool<sqlx::Postgres>, RepoError> {
+    let pool = PgPoolOptions::new()
+        .max_connections(10)
+        .connect(&*db_url).await?;
+    sqlx::migrate!("./migrations")
+        .run(&pool).await?;
+
+    Ok(pool)
+}
 

@@ -1,32 +1,22 @@
 use std::fmt::{Debug, Formatter};
 use std::str::FromStr;
-use std::thread;
+
 use std::time::Duration;
 use async_trait::async_trait;
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
-use sqlx::{migrate, Pool};
+use sqlx::{ Pool};
 use sqlx::migrate::MigrateError;
-use sqlx::postgres::PgPoolOptions;
 use uuid::Uuid;
 
 pub struct GreetingRepositoryImpl {
     pool: Box<Pool<sqlx::Postgres>>,
 }
 
-pub async fn create_pool(db_url: String) -> Result<Pool<sqlx::Postgres>, RepoError> {
-    let pool = PgPoolOptions::new()
-        .max_connections(100)
-        .connect(&*db_url).await?;
-    migrate!("./migrations")
-        .run(&pool).await?;
-
-    Ok(pool)
-}
 
 pub async fn generate_logg(pool : Box<Pool<sqlx::Postgres>>) -> Result<(), RepoError> {
     loop {
-        tokio::time::sleep(Duration::from_millis(5)).await;
+        tokio::time::sleep(Duration::from_secs(5)).await;
         let mut transaction = pool.begin().await?;
         sqlx::query("do
                         $$

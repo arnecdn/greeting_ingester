@@ -35,10 +35,10 @@ BEGIN
     -- The transaction lock will be automatically released when transaction ends.
     -- That happens when stored function ends since all stored functions
     -- in PostgreSQL is committed when it ends.
-SELECT pg_try_advisory_xact_lock(lock_id)
-INTO lock_succeeded;
+    SELECT pg_try_advisory_xact_lock(lock_id)
+    INTO lock_succeeded;
 
-IF lock_succeeded THEN
+    IF lock_succeeded THEN
         WITH deletions AS (
                DELETE
                  FROM ikke_paa_logg
@@ -46,11 +46,10 @@ IF lock_succeeded THEN
         )
         INSERT
           INTO logg (greeting_id)
-SELECT greeting_id
-
-FROM deletions
-ORDER BY greeting_id ASC;
-END IF;
+            SELECT greeting_id
+            FROM deletions
+            ORDER BY greeting_id ASC;
+    END IF;
 END;
 $$;
 

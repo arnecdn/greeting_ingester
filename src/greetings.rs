@@ -26,7 +26,7 @@ pub async fn create_pool(db_url: String) -> Result<Pool<sqlx::Postgres>, RepoErr
 
 pub async fn generate_logg(pool : Box<Pool<sqlx::Postgres>>) -> Result<(), RepoError> {
     loop {
-        thread::sleep(Duration::from_secs(5));
+        tokio::time::sleep(Duration::from_millis(5)).await;
         let mut transaction = pool.begin().await?;
         sqlx::query("do
                         $$

@@ -8,27 +8,10 @@ use serde::{Deserialize, Serialize};
 use sqlx::{ Pool};
 use sqlx::migrate::MigrateError;
 use uuid::Uuid;
+use crate::db::RepoError;
 
 pub struct GreetingRepositoryImpl {
     pool: Box<Pool<sqlx::Postgres>>,
-}
-
-
-pub async fn generate_logg(pool : Box<Pool<sqlx::Postgres>>) -> Result<(), RepoError> {
-    loop {
-        tokio::time::sleep(Duration::from_secs(5)).await;
-        let mut transaction = pool.begin().await?;
-        sqlx::query("do
-                        $$
-                            begin
-                                perform public.generate_logg();
-                            end
-                        $$;")
-
-            .execute(&mut *transaction).await?;
-
-        transaction.commit().await?;
-    }
 }
 
 #[async_trait]
@@ -43,12 +26,6 @@ impl Debug for GreetingRepositoryImpl {
 }
 impl GreetingRepositoryImpl {
     pub async fn new(pool : Box<Pool<sqlx::Postgres>>) -> Result<Self, RepoError> {
-        // let pool = PgPoolOptions::new()
-        //     .max_connections(100)
-        //     .connect(&*db_url).await?;
-        // migrate!("./migrations")
-        //     .run(&pool).await?;
-
         Ok(Self { pool })
     }
 
@@ -85,22 +62,6 @@ pub struct Greeting {
     heading: String,
     message: String,
     created: NaiveDateTime,
-}
-
-#[derive(Debug)]
-pub struct RepoError {
-    pub error_message: String,
-}
-
-impl From<sqlx::Error> for RepoError {
-    fn from(value: sqlx::Error) -> Self {
-        RepoError { error_message: value.to_string() }
-    }
-}
-impl From<MigrateError> for RepoError {
-    fn from(value: MigrateError) -> Self {
-        RepoError { error_message: value.to_string() }
-    }
 }
 
 

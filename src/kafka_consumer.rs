@@ -13,7 +13,8 @@ use tracing::{instrument, span, Span};
 use tracing_core::Level;
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 use crate::{Settings};
-use crate::greetings::{ GreetingRepository, GreetingRepositoryImpl, RepoError};
+use crate::db::RepoError;
+use crate::greetings::{GreetingRepository, GreetingRepositoryImpl};
 use crate::open_telemetry::HeaderExtractor;
 
 struct CustomContext;

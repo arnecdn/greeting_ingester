@@ -2,7 +2,6 @@ mod kafka_consumer;
 mod greetings;
 mod open_telemetry;
 mod settings;
-mod greeting_log;
 mod db;
 
 use std::thread;
@@ -36,18 +35,9 @@ async fn main() -> std::io::Result<()> {
     let repo = Box::new(GreetingRepositoryImpl::new(pool.clone()).await.expect("failed"));
     let mut consumer = kafka_consumer::KafkaConsumer::new(app_config, repo).await.expect("Failed to create kafka consumer");
 
-    let log_generator_handle = greeting_log::generate_logg(pool.clone());
     let consumer_handle = consumer.consume_and_store();
-    let server_handle = HttpServer::new(move || {
-        App::new()
-            .app_data(web::Data::new(pool.clone()))
-            .service(greeting_log::list_log_entries)
 
-    })
-        .bind(("127.0.0.1", 8080))?
-        .run();
-
-    join!(consumer_handle, log_generator_handle, server_handle);
+    join!(consumer_handle);
 
     global::shutdown_tracer_provider();
     logger_provider.shutdown();

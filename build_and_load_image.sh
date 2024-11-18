@@ -39,3 +39,6 @@ minikube image load .docker/greeting-processor-rust.tar || {
 }
 
 echo "Process completed successfully!"
+
+# apply the kubernetes deployment for kubernetes/greeting-rust.yaml with TAG
+kubectl apply -f  kubernetes/greeting-processor.yaml --record

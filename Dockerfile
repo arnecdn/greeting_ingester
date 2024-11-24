@@ -19,7 +19,6 @@ WORKDIR /app
 # Install host build dependencies.
 RUN apt-get update && apt-get install -y cmake
 
-ENV SQLX_OFFLINE true
 ENV DATABASE_URL=""
 
 # Build the application.

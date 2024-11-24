@@ -3,19 +3,19 @@ use std::fmt::{Debug, Formatter};
 use async_trait::async_trait;
 use log::{info, warn};
 use opentelemetry::{global};
+use opentelemetry::propagation::Extractor;
 use opentelemetry::trace::{Status, Tracer};
 use rdkafka::{ClientConfig, ClientContext, Message, TopicPartitionList};
 use rdkafka::config::RDKafkaLogLevel;
 use rdkafka::consumer::{CommitMode, Consumer, ConsumerContext, Rebalance, StreamConsumer};
 use rdkafka::error::{KafkaError, KafkaResult};
-use rdkafka::message::{BorrowedMessage, Headers};
+use rdkafka::message::{BorrowedHeaders, BorrowedMessage, Headers};
 use tracing::{instrument, span, Span};
 use tracing_core::Level;
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 use crate::{Settings};
 use crate::db::RepoError;
 use crate::greetings::{GreetingRepository, GreetingRepositoryImpl};
-use crate::open_telemetry::HeaderExtractor;
 
 struct CustomContext;
 
@@ -165,5 +165,24 @@ impl ConsumeTopics for KafkaConsumer {
                 }
             };
         }
+    }
+}
+
+pub struct HeaderExtractor<'a>(pub &'a BorrowedHeaders);
+
+impl<'a> Extractor for HeaderExtractor<'a> {
+    fn get(&self, key: &str) -> Option<&str> {
+        for i in 0..self.0.count() {
+            if let Ok(val) = self.0.get_as::<str>(i) {
+                if val.key == key {
+                    return val.value
+                }
+            }
+        }
+        None
+    }
+
+    fn keys(&self) -> Vec<&str> {
+        self.0.iter().map(|kv| kv.key).collect::<Vec<_>>()
     }
 }

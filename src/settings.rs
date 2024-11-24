@@ -6,7 +6,8 @@ use serde::Deserialize;
 pub(crate) struct Settings {
     pub(crate) kafka: Kafka,
     pub db: Db,
-    pub otel_collector: OtelCollector
+    pub otel_collector: OtelCollector,
+    pub (crate) kube: Kube
 }
 
 impl Settings {
@@ -38,4 +39,9 @@ pub struct Db{
 #[derive(Deserialize)]
 pub (crate) struct OtelCollector{
     pub (crate) oltp_endpoint: String
+}
+
+#[derive(Deserialize)]
+pub (crate) struct Kube{
+    pub (crate) my_pod_name: String
 }

@@ -2,6 +2,7 @@ mod kafka_consumer;
 mod greetings;
 mod settings;
 mod db;
+mod blob_writer;
 
 use futures_util::join;
 use opentelemetry::{global};
@@ -28,9 +29,7 @@ async fn main() -> std::io::Result<()> {
     let repo = Box::new(GreetingRepositoryImpl::new(pool.clone()).await.expect("failed"));
     let mut consumer = kafka_consumer::KafkaConsumer::new(app_config, repo).await.expect("Failed to create kafka consumer");
 
-    let consumer_handle = consumer.consume_and_store();
-
-    join!(consumer_handle);
+    consumer.consume_and_store().await.expect("Error in kafka consumer");
 
     global::shutdown_tracer_provider();
     Ok(())

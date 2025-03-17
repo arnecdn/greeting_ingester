@@ -1,7 +1,7 @@
 use std::str::Utf8Error;
 use std::fmt::{Debug, Formatter};
 use async_trait::async_trait;
-use log::{info, warn};
+use log::{error, info, warn};
 use opentelemetry::{global};
 use opentelemetry::propagation::Extractor;
 use opentelemetry::trace::{Status, Tracer};
@@ -15,7 +15,7 @@ use tracing_core::Level;
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 use crate::{Settings};
 use crate::db::RepoError;
-use crate::greetings::{GreetingRepository, GreetingRepositoryImpl};
+use crate::greetings::{Greeting, GreetingRepository, GreetingRepositoryImpl};
 
 struct CustomContext;
 
@@ -122,8 +122,12 @@ impl KafkaConsumer {
         info!("Consumed topic: {}, partition: {}, offset: {}, timestamp: {:?}, headers{:?},  payload: '{}'",
                     m.topic(), m.partition(), m.offset(), m.timestamp(), header_str, payload,);
 
-        let msg = serde_json::from_str(&payload).unwrap();
-        self.repo.store(msg).await.expect("Error");
+        let msg:Greeting = serde_json::from_str(&payload).unwrap();
+        self.repo.store(msg.clone()).await.expect("Error");
+        if let Err(e) = self.repo.store_blob(msg.clone()).await{
+            error!("{:?}" ,e);
+            println!("{:?}" ,e);
+        }
         // span.set_status(Status::Ok);
         // span.end();
 

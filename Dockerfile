@@ -6,7 +6,7 @@
 
 # Want to help us make this template better? Share your feedback here: https://forms.gle/ybq9Krt8jtBL3iCk7
 
-ARG RUST_VERSION=1.78-bullseye
+ARG RUST_VERSION=1.85-bullseye
 ARG APP_NAME=greeting_processor_rust
 
 ################################################################################
@@ -29,19 +29,22 @@ ENV DATABASE_URL=""
 # Leverage a bind mount to the src directory to avoid having to copy the
 # source code into the container. Once built, copy the executable to an
 # output directory before the cache mounted /app/target is unmounted.
-RUN --mount=type=bind,source=src,target=src \
-    --mount=type=bind,source=migrations,target=migrations \
-    --mount=type=bind,source=.sqlx,target=.sqlx \
-    --mount=type=bind,source=Cargo.toml,target=Cargo.toml \
-    --mount=type=bind,source=Cargo.lock,target=Cargo.lock \
-    --mount=type=cache,target=/app/target/ \
-    --mount=type=cache,target=/usr/local/cargo/git/db \
-    --mount=type=cache,target=/usr/local/cargo/registry/ \
-    cargo build --locked --release && \
+#RUN --mount=type=bind,source=src,target=src \
+#    --mount=type=bind,source=migrations,target=migrations \
+#    --mount=type=bind,source=.sqlx,target=.sqlx \
+#    --mount=type=bind,source=Cargo.toml,target=Cargo.toml \
+#    --mount=type=bind,source=Cargo.lock,target=Cargo.lock \
+#    --mount=type=cache,target=/usr/local/cargo/git/db \
+#    --mount=type=cache,target=/usr/local/cargo/registry/ \
+#    cargo build --locked --release && \
+#    cp ./target/release/$APP_NAME /bin/server && \
+#    mkdir -p /bin/migrations && \
+#    cp migrations/* /bin/migrations
+COPY . .
+RUN cargo build --locked --release && \
     cp ./target/release/$APP_NAME /bin/server && \
     mkdir -p /bin/migrations && \
     cp migrations/* /bin/migrations
-
 ################################################################################
 # Create a new stage for running the application that contains the minimal
 # runtime dependencies for the application. This often uses a different base
@@ -52,7 +55,7 @@ RUN --mount=type=bind,source=src,target=src \
 # By specifying the "3.18" tag, it will use version 3.18 of alpine. If
 # reproducability is important, consider using a digest
 # (e.g., alpine@sha256:664888ac9cfd28068e062c991ebcff4b4c7307dc8dd4df9e728bedde5c449d91).
-FROM rust:${RUST_VERSION} AS final
+FROM rust:1.85-slim-bullseye AS final
 
 #RUN apk update && apk add gcompat strace
 RUN mkdir -p /bin/migrations

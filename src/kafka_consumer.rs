@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use log::{error, info, warn};
 use opentelemetry::{global};
 use opentelemetry::propagation::Extractor;
-use opentelemetry::trace::{Status, Tracer};
+use opentelemetry::trace::{Status, TraceContextExt, Tracer};
 use rdkafka::{ClientConfig, ClientContext, Message, TopicPartitionList};
 use rdkafka::config::RDKafkaLogLevel;
 use rdkafka::consumer::{CommitMode, Consumer, ConsumerContext, Rebalance, StreamConsumer};

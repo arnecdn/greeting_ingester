@@ -42,6 +42,5 @@ async fn main() -> std::io::Result<()> {
         .await
         .expect("Error in kafka consumer");
 
-    global::shutdown_tracer_provider();
     Ok(())
 }

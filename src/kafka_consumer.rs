@@ -124,10 +124,6 @@ impl KafkaConsumer {
 
         let msg:Greeting = serde_json::from_str(&payload).unwrap();
         self.repo.store(msg.clone()).await.expect("Error");
-        if let Err(e) = self.repo.store_blob(msg.clone()).await{
-            error!("{:?}" ,e);
-            println!("{:?}" ,e);
-        }
         // span.set_status(Status::Ok);
         // span.end();
 

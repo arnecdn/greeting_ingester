@@ -1,4 +1,3 @@
-mod blob_writer;
 mod db;
 mod greetings;
 mod kafka_consumer;
@@ -7,7 +6,6 @@ mod settings;
 use crate::greetings::GreetingRepositoryImpl;
 use crate::kafka_consumer::ConsumeTopics;
 use crate::settings::Settings;
-use opentelemetry::global;
 use opentelemetry::trace::TracerProvider;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;

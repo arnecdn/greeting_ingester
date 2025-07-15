@@ -1,6 +1,8 @@
 use std::str::Utf8Error;
 use std::fmt::{Debug, Formatter};
 use async_trait::async_trait;
+use greeting_db_api::DbError;
+use greeting_db_api::greeting_command::{GreetingCommandRepository, GreetingCommandRepositoryImpl};
 use log::{error, info, warn};
 use opentelemetry::{global};
 use opentelemetry::propagation::Extractor;
@@ -14,21 +16,12 @@ use tracing::{instrument, span, Span};
 use tracing_core::Level;
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 use crate::{Settings};
-use crate::db::RepoError;
-use crate::greetings::{Greeting, GreetingRepository, GreetingRepositoryImpl};
 
 struct CustomContext;
 
 impl ClientContext for CustomContext {}
 
 impl ConsumerContext for CustomContext {
-    fn pre_rebalance(&self, rebalance: &Rebalance) {
-        info!("Pre rebalance {:?}", rebalance);
-    }
-
-    fn post_rebalance(&self, rebalance: &Rebalance) {
-        info!("Post rebalance {:?}", rebalance);
-    }
 
     fn commit_callback(&self, result: KafkaResult<()>, _offsets: &TopicPartitionList) {
         info!("Committing offsets: {:?}", result);
@@ -43,8 +36,8 @@ pub struct ConsumerError {
     err_msg: String,
 }
 
-impl From<RepoError> for ConsumerError {
-    fn from(value: RepoError) -> Self {
+impl From<DbError> for ConsumerError {
+    fn from(value: DbError) -> Self {
         ConsumerError { err_msg: value.error_message }
     }
 }
@@ -70,7 +63,7 @@ pub struct KafkaConsumer {
     topic: String,
     consumer_group: String,
     // consumer: LoggingConsumer,
-    repo: Box<GreetingRepositoryImpl>,
+    repo: Box<GreetingCommandRepositoryImpl>,
     kafka_broker: String,
 }
 
@@ -81,7 +74,7 @@ impl Debug for KafkaConsumer {
 }
 
 impl KafkaConsumer {
-    pub async fn new(settings: Settings, greeting_repo: Box<GreetingRepositoryImpl>) -> Result<Self, ConsumerError> {
+    pub async fn new(settings: Settings, greeting_repo: Box<GreetingCommandRepositoryImpl>) -> Result<Self, ConsumerError> {
         Ok(Self {
             topic: settings.kafka.topic,
             consumer_group: settings.kafka.consumer_group,
@@ -122,7 +115,7 @@ impl KafkaConsumer {
         info!("Consumed topic: {}, partition: {}, offset: {}, timestamp: {:?}, headers{:?},  payload: '{}'",
                     m.topic(), m.partition(), m.offset(), m.timestamp(), header_str, payload,);
 
-        let msg:Greeting = serde_json::from_str(&payload).unwrap();
+        let msg:greeting_db_api::greeting_command::GreetingCmdDto = serde_json::from_str(&payload).unwrap();
         self.repo.store(msg.clone()).await.expect("Error");
         // span.set_status(Status::Ok);
         // span.end();

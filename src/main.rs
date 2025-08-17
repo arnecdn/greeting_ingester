@@ -3,7 +3,7 @@ mod settings;
 
 use crate::kafka_consumer::ConsumeTopics;
 use crate::settings::Settings;
-use greeting_db_api::{greeting_command::GreetingCommandRepositoryImpl, init_db};
+use greeting_db_api::{greeting_command::GreetingCommandRepositoryImpl, init_db, migrate};
 use opentelemetry::trace::TracerProvider;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -24,6 +24,9 @@ async fn main() -> std::io::Result<()> {
             .await
             .expect("Expected db pool"),
     );
+    
+    
+    
     let repo = Box::new(
         GreetingCommandRepositoryImpl::new(pool.clone())
             .await

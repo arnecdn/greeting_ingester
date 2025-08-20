@@ -42,9 +42,7 @@ ENV DATABASE_URL=""
 #    cp migrations/* /bin/migrations
 COPY . .
 RUN cargo build --locked --release && \
-    cp ./target/release/$APP_NAME /bin/server && \
-    mkdir -p /bin/migrations && \
-    cp migrations/* /bin/migrations
+    cp ./target/release/$APP_NAME /bin/server
 ################################################################################
 # Create a new stage for running the application that contains the minimal
 # runtime dependencies for the application. This often uses a different base
@@ -58,7 +56,7 @@ RUN cargo build --locked --release && \
 FROM rust:1.85-slim-bullseye AS final
 
 #RUN apk update && apk add gcompat strace
-RUN mkdir -p /bin/migrations
+
 
 # Create a non-privileged user that the app will run under.
 # See https://docs.docker.com/go/dockerfile-user-best-practices/
@@ -75,9 +73,3 @@ USER appuser
 
 # Copy the executable from the "build" stage.
 COPY --chown=appuser:appuser --from=build /bin/server /bin/
-COPY --chown=appuser:appuser --from=build /bin/migrations /bin/migrations
-
-
-# What the container should run when it is started.
-#ENTRYPOINT ["tail"]
-#CMD ["-f","/dev/null"]

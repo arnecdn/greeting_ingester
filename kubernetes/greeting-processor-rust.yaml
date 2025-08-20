@@ -14,7 +14,7 @@ spec:
         spec:
             containers:
                 -   name: greeting-processor-rust
-                    image: arnecdn/greeting-processor-rust:0.1
+                    image: arnecdn/greeting-processor-rust:0.2
                     imagePullPolicy: IfNotPresent
                     resources:
                         requests:
@@ -40,7 +40,7 @@ spec:
                         - name: APP__KAFKA__PROCESSING_GUARANTEE
                           value: "exactly_once"
                         - name: APP__DB__DATABASE_URL
-                          value: "postgres://greeting_rust:greeting_rust@postgres-greeting:5432/greeting_rust"
+                          value: "postgres://greeting_rust:Z3JlZXRpbmdfcnVzdAo=@postgres-greeting:5432/greeting_rust"
                         - name: APP__OTEL_COLLECTOR__OLTP_ENDPOINT
                           value: "http://my-opentelemetry-collector:4317"
                         - name: APP__KUBE__MY_POD_NAME

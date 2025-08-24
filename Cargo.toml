@@ -1,5 +1,5 @@
 [package]
-name = "greeting_processor_rust"
+name = "greeting-ingester"
 version = "0.1.0"
 edition = "2021"
 

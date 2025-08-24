@@ -1,5 +1,5 @@
 TAG ?= 0.2
-APP_NAME = greeting-processor-rust
+APP_NAME = greeting-ingester
 IMAGE_NAME = arnecdn/$(APP_NAME)
 KUBERNETES_FILE = kubernetes/$(APP_NAME).yaml
 

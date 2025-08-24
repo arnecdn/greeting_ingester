@@ -1,20 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: greeting-processor-rust
+    name: greeting-ingester
 spec:
     replicas: 0
     selector:
         matchLabels:
-            app: greeting-processor-rust
+            app: greeting-ingester
     template:
         metadata:
             labels:
-                app: greeting-processor-rust
+                app: greeting-ingester
         spec:
             containers:
-                -   name: greeting-processor-rust
-                    image: arnecdn/greeting-processor-rust:0.2
+                -   name: greeting-ingester
+                    image: arnecdn/greeting-ingester:0.2
                     imagePullPolicy: IfNotPresent
                     resources:
                         requests:
@@ -56,24 +56,24 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-    name: greeting-processor-rust
+    name: greeting-ingester-service
 spec:
     ports:
         - port: 8090
     selector:
-        app: greeting-processor-rust
+        app: greeting-ingester
 
 ---
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:
-    name: greeting-processor-rust-scaledobject
+    name: greeting-ingester-scaledobject
     namespace: default
     labels:
-        deploymentName: greeting-processor-rust
+        deploymentName: greeting-ingester
 spec:
     scaleTargetRef:
-        name: greeting-processor-rust
+        name: greeting-ingester
     pollingInterval: 10
     idleReplicaCount: 0
     cooldownPeriod: 60                               # Optional. Default: 300 seconds

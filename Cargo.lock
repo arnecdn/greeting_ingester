@@ -915,6 +915,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d2fabcfbdc87f4758337ca535fb41a6d701b65693ce38287d856d1674551ec9b"
 
 [[package]]
+name = "greeting-ingester"
+version = "0.1.0"
+dependencies = [
+ "actix-web",
+ "async-trait",
+ "config",
+ "dotenv",
+ "greeting_db_api",
+ "greeting_otel",
+ "log",
+ "opentelemetry",
+ "rdkafka",
+ "serde",
+ "serde_json",
+ "tracing",
+ "tracing-core",
+ "tracing-opentelemetry",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "greeting_db_api"
 version = "0.1.0"
 source = "git+https://github.com/arnecdn/greeting_db_api#120244782314a608382ec180ae73c27c03ff3bc7"
@@ -938,27 +959,6 @@ dependencies = [
  "opentelemetry-semantic-conventions",
  "opentelemetry_sdk",
  "tracing",
- "tracing-opentelemetry",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "greeting_processor_rust"
-version = "0.1.0"
-dependencies = [
- "actix-web",
- "async-trait",
- "config",
- "dotenv",
- "greeting_db_api",
- "greeting_otel",
- "log",
- "opentelemetry",
- "rdkafka",
- "serde",
- "serde_json",
- "tracing",
- "tracing-core",
  "tracing-opentelemetry",
  "tracing-subscriber",
 ]

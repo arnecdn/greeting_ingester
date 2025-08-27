@@ -1,20 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: greeting-ingester
+    name: greeting-processor
 spec:
     replicas: 0
     selector:
         matchLabels:
-            app: greeting-ingester
+            app: greeting-processor
     template:
         metadata:
             labels:
-                app: greeting-ingester
+                app: greeting-processor
         spec:
             containers:
-                -   name: greeting-ingester
-                    image: arnecdn/greeting-ingester:0.2
+                -   name: greeting-processor
+                    image: docker.io/arnecdn/greeting-processor:0.3
                     imagePullPolicy: IfNotPresent
                     resources:
                         requests:
@@ -42,7 +42,7 @@ spec:
                         - name: APP__DB__DATABASE_URL
                           value: "postgres://greeting_rust:Z3JlZXRpbmdfcnVzdAo=@postgres-greeting:5432/greeting_rust"
                         - name: APP__OTEL_COLLECTOR__OLTP_ENDPOINT
-                          value: "http://my-opentelemetry-collector:4317"
+                          value: "http://grafana-alloy:4317"
                         - name: APP__KUBE__MY_POD_NAME
                           valueFrom:
                               fieldRef:
@@ -56,24 +56,24 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-    name: greeting-ingester-service
+    name: greeting-processor-service
 spec:
     ports:
         - port: 8090
     selector:
-        app: greeting-ingester
+        app: greeting-processor
 
 ---
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:
-    name: greeting-ingester-scaledobject
+    name: greeting-processor-scaledobject
     namespace: default
     labels:
-        deploymentName: greeting-ingester
+        deploymentName: greeting-processor
 spec:
     scaleTargetRef:
-        name: greeting-ingester
+        name: greeting-processor
     pollingInterval: 10
     idleReplicaCount: 0
     cooldownPeriod: 60                               # Optional. Default: 300 seconds

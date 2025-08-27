@@ -6,13 +6,13 @@
 
 # Want to help us make this template better? Share your feedback here: https://forms.gle/ybq9Krt8jtBL3iCk7
 
-ARG RUST_VERSION=1.85-bullseye
-ARG APP_NAME=greeting-ingester
+ARG RUST_VERSION=1.89-bullseye
+ARG APP_NAME=greeting-processor
 
 ################################################################################
 # Create a stage for building the application.
 
-FROM rust:${RUST_VERSION} AS build
+FROM docker.io/rust:${RUST_VERSION} AS build
 ARG APP_NAME
 WORKDIR /app
 
@@ -53,7 +53,7 @@ RUN cargo build --locked --release && \
 # By specifying the "3.18" tag, it will use version 3.18 of alpine. If
 # reproducability is important, consider using a digest
 # (e.g., alpine@sha256:664888ac9cfd28068e062c991ebcff4b4c7307dc8dd4df9e728bedde5c449d91).
-FROM rust:1.85-slim-bullseye AS final
+FROM docker.io/rust:1.89-slim-bullseye AS final
 
 #RUN apk update && apk add gcompat strace
 
